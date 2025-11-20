@@ -1,0 +1,1259 @@
+﻿-- Active: 1755668816104@@127.0.0.1@5432
+-- Active: 1755668816104@@127.0.0.1@5432
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Machining Time Calculator</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+
+  <style>
+    body { background:#f0f2f5; font-family:'Segoe UI', Meiryo, 'Hiragino Kaku Gothic ProN', sans-serif; }
+
+    /* ========= 条件 3カラム（入力 / 結果(機械・判定) / 結果(時間)） ========= */
+    @media (min-width: 992px){
+      .condition-row>[class^="col-"]{ display:flex; }
+      .condition-row .card{ flex:1 1 auto; }
+    }
+
+    /* ========= 判定バッジ ========= */
+    #judgement_box{
+      display:flex; align-items:center; justify-content:center;
+      min-height:3.0rem; text-align:center; border-radius:.75rem;
+      font-size:1.1rem; font-weight:700; border:1px solid transparent;
+      padding:.5rem; transition:background-color .2s ease,color .2s ease,border-color .2s ease;
+    }
+    #judgement_box.judge-ok{ background:#e8f5e9; color:#2e7d32; border-color:#c8e6c9; }
+    #judgement_box.judge-ng{ background:#ffebee; color:#c62828; border-color:#ffcdd2; }
+    #judgement_box.judge-warn{ background:#fff8e1; color:#ef6c00; border-color:#ffe0b2; }
+
+    .badge-machine{ border-radius:999px; font-size:.75rem; }
+
+    /* ========= 工具カードのエリア：3カラム（左→中→右→左下→中下→右下…） ========= */
+    .process-display-area{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:.75rem;
+      margin-top:.75rem;
+      padding:10px 0;
+      background:#f9fafb;
+    }
+    @media (max-width:1200px){ .process-display-area{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:992px) { .process-display-area{ grid-template-columns:1fr; } }
+
+    .process-column.card{ border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,.05); }
+    .process-column .card-body .tool-input-label{ font-size:.8rem; color:#6c757d; margin-bottom:.25rem; }
+    .process-column .row.align-items-start{ align-items:stretch !important; }
+
+    /* 入力カラムと計算実行ボタン配置 */
+    .tool-input-column{ display:flex; flex-direction:column; height:100%; }
+    .process-run-container{ margin-top:auto; padding-top:.5rem; display:flex; justify-content:flex-start; }
+
+    /* 画像は残す／ラベルは出さない */
+    .process-media{ display:flex; flex-direction:column; gap:.5rem; }
+    .process-media img{ width:100%; height:auto; border-radius:.25rem; border:1px solid #dee2e6; background:#fff; }
+
+    /* 深さ・貫通などのインラインラッパー */
+    .depth-input-wrapper{ display:flex; align-items:center; gap:.5rem; }
+  </style>
+</head>
+<body>
+
+<div class="container py-4">
+  <h1 class="h3 text-center mb-4 border-bottom pb-2">Machining Time Calculator</h1>
+
+  <!-- ========= 加工条件設定：3カラム ========= -->
+  <div class="card mb-3">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span>加工条件設定</span>
+      <!-- リセット -->
+      <button id="reset_all" type="button" class="btn btn-sm btn-outline-danger">リセット</button>
+    </div>
+
+    <div class="card-body">
+      <div class="row g-3 condition-row">
+        <!-- ① 入力 -->
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-header py-2"><span class="fw-bold small">入力（材質・寸法・条件）</span></div>
+            <div class="card-body">
+              <div class="row g-2">
+                <div class="col-12">
+                  <label for="material" class="form-label mb-1 small">材質</label>
+                  <select id="material" name="material" class="form-select form-select-sm">
+                    <option value="SS400">SS400</option>
+                  </select>
+                </div>
+
+                <div class="col-6">
+                  <label for="plate_thickness" class="form-label mb-1 small">板厚(t)</label>
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="plate_thickness" name="plate_thickness">
+                    <span class="input-group-text">mm</span>
+                  </div>
+                </div>
+
+                <div class="col-6">
+                  <label for="width" class="form-label mb-1 small">幅</label>
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="width" name="width">
+                    <span class="input-group-text">mm</span>
+                  </div>
+                </div>
+
+                <div class="col-6">
+                  <label for="length" class="form-label mb-1 small">長さ</label>
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" id="length" name="length">
+                    <span class="input-group-text">mm</span>
+                  </div>
+                </div>
+
+                <div class="col-6">
+                  <label class="form-label mb-1 small">重量(㎏)</label>
+                  <div class="input-group input-group-sm">
+                    <div class="form-control bg-body-secondary text-end" id="weight_display" aria-live="polite">--</div>
+                    <span class="input-group-text">kg</span>
+                  </div>
+                  <div class="form-text small text-muted">板厚×幅×長さから自動計算します。</div>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label mb-1 small">バイス可能条件(幅)</label>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="vise_parallel" name="vise_parallel">
+                    <label class="form-check-label small" for="vise_parallel">平行</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ② 結果（対応可能機械・判定） -->
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-header py-2"><span class="fw-bold small">結果（対応可能機械・判定）</span></div>
+            <div class="card-body small d-grid gap-2">
+              <div class="border rounded px-2 py-1">
+                <div class="mb-1">判定結果</div>
+                <div id="judgement_box" class="judge-warn">入力待機</div>
+              </div>
+              <div class="border rounded px-2 py-1">
+                <div class="mb-1">対応可能機械</div>
+                <div id="available_machines" class="d-flex flex-wrap gap-1">
+                  <span class="badge bg-secondary-subtle text-secondary-emphasis border badge-machine">判定待ち</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ③ 結果（時間） -->
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-header py-2"><span class="fw-bold small">結果（時間）</span></div>
+            <div class="card-body small d-grid gap-2">
+
+              <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1">
+                <span>加工時間</span>
+                <div class="input-group input-group-sm" style="width:130px;">
+                  <input type="text" id="total_processing_time" name="total_processing_time" class="form-control text-end" readonly>
+                  <span class="input-group-text">分</span>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1">
+                <span>脱着時間</span>
+                <div class="input-group input-group-sm" style="width:130px;">
+                  <input type="text" id="removal_time" name="removal_time" class="form-control text-end" readonly>
+                  <span class="input-group-text">分</span>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1">
+                <span>段取時間(短)</span>
+                <div class="input-group input-group-sm" style="width:130px;">
+                  <input type="text" id="setup_time_count" name="setup_time_count" class="form-control text-end" readonly>
+                  <span class="input-group-text">分</span>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center border rounded px-2 py-1">
+                <span>段取時間(長)</span>
+                <div class="input-group input-group-sm" style="width:130px;">
+                  <input type="text" id="setup_time_long" name="setup_time_long" class="form-control text-end" readonly>
+                  <span class="input-group-text">分</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.row -->
+    </div><!-- /.card-body -->
+  </div><!-- /.card -->
+
+  <!-- ========= 加工手順 ========= -->
+  <div class="card mb-3">
+    <div class="card-header">加工手順</div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="process_procedure_table" class="table table-sm table-bordered align-middle text-center">
+          <thead class="table-light">
+            <tr>
+              <th>No.</th><th>加工詳細</th><th>径</th>
+              <th>下孔/切削長</th><th>ピッチ</th><th>孔数</th>
+              <th>工具</th><th>加工秒</th><th>加工分</th>
+              <th>工具長</th><th>加工判断</th><th>非加工</th>
+              <th>段取長</th><th>段取短</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========= 加工種別を選択（ボタンのみ / 幅詰め） ========= -->
+  <div class="card mb-3">
+    <div class="card-header">加工種別を選択 (複数選択可)</div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-2 mb-2 process-selector">
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-drill">ドリル</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-tap">タップ</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-endmill-circle">エンドミル(真円)</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-endmill-side">エンドミル(側面)</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-slot">長孔</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-chamfer-circle">真円面取り</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-chamfer-side">面取り(側面)</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-boring">ボーリング</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-reamer">リーマ</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-counterbore">ザグリ</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-milling">フライス</button>
+      </div>
+
+      <div class="process-display-area"><!-- 3カラムに自動整列して増える --></div>
+    </div>
+  </div>
+
+</div><!-- /.container -->
+
+<!-- ================== 工具テンプレート（非表示） ================== -->
+<div id="process-column-templates" style="display:none;">
+
+  <!-- ドリル -->
+  <div id="column-drill" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">ドリル</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small">径 (Dh)</label>
+            <input type="number" name="drill_diameter" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small">深さ (Lh)</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="drill_depth" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 penetration-checkbox">
+                <input class="form-check-input" type="checkbox" name="drill_penetration">
+                <label class="form-check-label">貫通</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small">孔数</label>
+            <input type="number" name="drill_hole_count" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="drill">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/ドリル径.png' %}" alt="ドリル径">
+            <img src="{% static 'calculator/images/ドリル深さ.png' %}" alt="ドリル深さ">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- タップ -->
+  <div id="column-tap" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">タップ</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small">M(呼径)</label>
+            <input type="text" name="tap_m" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small">ピッチ</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="tap_pitch" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 coarsethread-checkbox">
+                <input class="form-check-input" type="checkbox" name="tap_coarsethread">
+                <label class="form-check-label">並目</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small">深さ (Lh)</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="tap_depth" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 penetration-checkbox">
+                <input class="form-check-input" type="checkbox" name="tap_penetration">
+                <label class="form-check-label">貫通</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small">孔数</label>
+            <input type="number" name="tap_hole_count" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="tap">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/タップ呼径.png' %}" alt="タップ呼径">
+            <img src="{% static 'calculator/images/タップピッチ.png' %}" alt="タップピッチ">
+            <img src="{% static 'calculator/images/タップ深さ.png' %}" alt="タップ深さ">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- エンドミル(真円) -->
+  <div id="column-endmill-circle" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">エンドミル(真円)</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small">深さ (Lh)</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="endmill_circle_depth" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 penetration-checkbox">
+                <input class="form-check-input" type="checkbox" name="endmill_circle_penetration">
+                <label class="form-check-label">貫通</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">取代(面積) (Sf)</label>
+            <input type="number" name="endmill_circle_removal" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">刃長</label>
+            <input type="number" name="endmill_circle_cutting_edge" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">加工径 (Dh)</label>
+            <input type="number" name="endmill_circle_machining_diameter" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">孔数</label>
+            <input type="number" name="endmill_circle_hole_count" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="endmill-circle">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/エンドミル(真円)深さ.png' %}" alt="エンドミル(真円)深さ">
+            <img src="{% static 'calculator/images/エンドミル(真円)取代(幅).png' %}" alt="エンドミル(真円)取代(幅)">
+            <img src="{% static 'calculator/images/エンドミル(真円)刃先R.png' %}" alt="エンドミル(真円)刃先R">
+            <img src="{% static 'calculator/images/エンドミル(真円)加工径.png' %}" alt="エンドミル(真円)加工径">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- エンドミル(側面) -->
+  <div id="column-endmill-side" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">エンドミル(側面)</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2"><label class="form-label mb-1 small">深さ (Df)</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="endmill_side_depth" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 penetration-checkbox">
+                <input class="form-check-input" type="checkbox" name="endmill_side_penetration">
+                <label class="form-check-label">貫通</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">取代(面積) (Sf)</label>
+            <input type="number" name="endmill_side_removal" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">刃長</label>
+            <input type="number" name="endmill_side_cutting_edge" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">刃先長 (Lc)</label>
+            <input type="number" name="endmill_side_cutting_length" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">最小R (直線≦99)</label>
+            <input type="number" name="endmill_side_minimum_inner_radius" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="endmill-side">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/エンドミル(側面)深さ.png' %}" alt="エンドミル(側面)深さ">
+            <img src="{% static 'calculator/images/エンドミル(側面)取代(幅).png' %}" alt="エンドミル(側面)取代(幅)">
+            <img src="{% static 'calculator/images/エンドミル(側面)刃先R.png' %}" alt="エンドミル(側面)刃先R">
+            <img src="{% static 'calculator/images/エンドミル(側面)最小内R.png' %}" alt="エンドミル(側面)最小内R">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 長孔 -->
+  <div id="column-slot" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">長孔</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2"><label class="form-label mb-1 small">幅</label>
+            <input type="number" name="slot_width" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">長さ</label>
+            <input type="number" name="slot_length" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">深さ (Dp)</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="slot_depth" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 penetration-checkbox">
+                <input class="form-check-input" type="checkbox" name="slot_penetration">
+                <label class="form-check-label">貫通</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">刃長</label>
+            <input type="number" name="slot_cutting_edge" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">孔数</label>
+            <input type="number" name="slot_hole_count" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="slot">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/長孔幅.png' %}" alt="長孔幅">
+            <img src="{% static 'calculator/images/長孔長さ.png' %}" alt="長孔長さ">
+            <img src="{% static 'calculator/images/長孔深さ.png' %}" alt="長孔深さ">
+            <img src="{% static 'calculator/images/長孔刃先R.png' %}" alt="長孔刃先R">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 真円面取り -->
+  <div id="column-chamfer-circle" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">真円面取り</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2"><label class="form-label mb-1 small">角度 (Ac)</label>
+            <input type="number" name="chamfer_circle_angle" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">加工幅 (Wc)</label>
+            <input type="text" name="chamfer_circle_processing_width" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">加工径 (Dh)</label>
+            <input type="text" name="chamfer_circle_machining_diameter" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">孔数</label>
+            <input type="number" name="chamfer_circle_hole_count" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="chamfer-circle">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/真円面取り角度.png' %}" alt="真円面取り角度">
+            <img src="{% static 'calculator/images/真円面取り加工径.png' %}" alt="真円面取り加工径">
+            <img src="{% static 'calculator/images/真円面取り加工幅.png' %}" alt="真円面取り加工幅">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 面取り(側面) -->
+  <div id="column-chamfer-side" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">面取り(側面)</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2"><label class="form-label mb-1 small">角度 (Ac)</label>
+            <input type="number" name="chamfer_side_angle" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">加工幅 (Wc)</label>
+            <input type="text" name="chamfer_side_processing_width" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">刃先長 (Lc)</label>
+            <input type="number" name="chamfer_side_cutting_length" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">最小R (直線≦99)</label>
+            <input type="number" name="chamfer_side_minimum_inner_radius" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="chamfer-side">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/面取り(側面)角度.png' %}" alt="面取り(側面)角度">
+            <img src="{% static 'calculator/images/面取り(側面)加工幅.png' %}" alt="面取り(側面)加工幅">
+            <img src="{% static 'calculator/images/面取り(側面)最小内R.png' %}" alt="面取り(側面)最小内R">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ボーリング -->
+  <div id="column-boring" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">ボーリング</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2"><label class="form-label mb-1 small">径 (Dh)</label>
+            <input type="number" name="boring_diameter" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">溶断孔径</label>
+            <input type="number" name="boring_fusing_hole" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">深さ (Lh)</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="boring_depth" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 penetration-checkbox">
+                <input class="form-check-input" type="checkbox" name="boring_penetration">
+                <label class="form-check-label">貫通</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">孔数</label>
+            <input type="number" name="boring_hole_count" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="boring">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/ボーリング径.png' %}" alt="ボーリング径">
+            <img src="{% static 'calculator/images/ボーリング深さ.png' %}" alt="ボーリング深さ">
+            <img src="{% static 'calculator/images/ボーリング溶断孔.png' %}" alt="ボーリング溶断孔">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- リーマ -->
+  <div id="column-reamer" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">リーマ</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2"><label class="form-label mb-1 small">径 (Dh)</label>
+            <input type="number" name="reamer_diameter" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">深さ (Lh)</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="reamer_depth" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 penetration-checkbox">
+                <input class="form-check-input" type="checkbox" name="reamer_penetration">
+                <label class="form-check-label">貫通</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">孔数</label>
+            <input type="number" name="reamer_hole_count" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="reamer">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/リーマ径.png' %}" alt="リーマ径">
+            <img src="{% static 'calculator/images/リーマ深さ.png' %}" alt="リーマ深さ">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ザグリ -->
+  <div id="column-counterbore" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">ザグリ</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2"><label class="form-label mb-1 small">ザグリ径</label>
+            <input type="number" name="counterbore_diameter" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">ザグリ深さ</label>
+            <input type="number" name="counterbore_depth" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">孔径</label>
+            <input type="number" name="counterbore_pore_diameter" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">孔深さ</label>
+            <div class="depth-input-wrapper">
+              <input type="number" name="counterbore_hole_depth" class="form-control form-control-sm">
+              <div class="form-check form-check-inline small mb-0 penetration-checkbox">
+                <input class="form-check-input" type="checkbox" name="counterbore_penetration">
+                <label class="form-check-label">貫通</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">孔数</label>
+            <input type="number" name="counterbore_hole_count" class="form-control form-control-sm">
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="counterbore">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/ザグリ径.png' %}" alt="ザグリ径">
+            <img src="{% static 'calculator/images/ザグリ深さ.png' %}" alt="ザグリ深さ">
+            <img src="{% static 'calculator/images/ザグリ孔径.png' %}" alt="ザグリ孔径">
+            <img src="{% static 'calculator/images/ザグリ孔深さ.png' %}" alt="ザグリ孔深さ">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- フライス -->
+  <div id="column-milling" class="process-column card">
+    <div class="card-header py-2 d-flex align-items-center justify-content-between">
+      <span class="fw-bold small">フライス</span>
+      <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-start">
+        <div class="col-lg-6 tool-input-column">
+          <div class="tool-input-label">入力</div>
+          <div class="mb-2"><label class="form-label mb-1 small">加工深さ</label>
+            <input type="number" name="milling_depth" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">面粗度▽</label>
+            <input type="number" name="milling_surface_roughness" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">取代(幅) (Wf)</label>
+            <input type="number" name="milling_removal_width" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2"><label class="form-label mb-1 small">取代(長さ) (Lf)</label>
+            <input type="number" name="milling_removal_length" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2">
+            <label class="form-label mb-1 small d-block">切削面</label>
+            <div class="d-flex gap-2 flex-wrap small">
+              <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="milling_cutting_surface_option" value="one_side" checked>
+                <label class="form-check-label">片面</label>
+              </div>
+              <div class="form-check form-check-inline mb-0">
+                <input class="form-check-input" type="radio" name="milling_cutting_surface_option" value="both_sides">
+                <label class="form-check-label">両面</label>
+              </div>
+            </div>
+          </div>
+          <div class="process-run-container">
+            <button type="button" class="btn btn-sm btn-primary process-run-btn" data-type="milling">計算実行</button>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="process-media">
+            <img src="{% static 'calculator/images/フライス深さ.png' %}" alt="フライス深さ">
+            <img src="{% static 'calculator/images/フライス取代(幅).png' %}" alt="フライス取代(幅)">
+            <img src="{% static 'calculator/images/フライス取代(長).png' %}" alt="フライス取代(長)">
+            <img src="{% static 'calculator/images/フライス面粗度▽.png' %}" alt="フライス面粗度▽">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /process-column-templates -->
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const processSelector   = document.querySelector('.process-selector');
+  const displayArea       = document.querySelector('.process-display-area');
+  const templatesContainer= document.getElementById('process-column-templates');
+  const procedureTable    = document.getElementById('process_procedure_table');
+
+  /* ========= テーブル行生成（簡易） ========= */
+  const procedureColumns = ['tool','diameter','pre-hole','pitch','hole-count','selected-tool','time-seconds','time-minutes','tool-length','judge','non-processing','setup-long','setup-short'];
+
+  function createProcedureRow(tbody){
+    const idx = tbody.querySelectorAll('tr').length + 1;
+    const tr = document.createElement('tr');
+    tr.dataset.rowIndex = String(idx);
+    const tdNo = document.createElement('td'); tdNo.textContent = String(idx); tr.appendChild(tdNo);
+    procedureColumns.forEach(k=>{ const td=document.createElement('td'); td.setAttribute('data-col',k); tr.appendChild(td); });
+    tbody.appendChild(tr);
+    return tr;
+  }
+
+  function fillRow(tr, data){
+    const map = { tool: data.toolName || '', diameter: data.diameter || '', 'hole-count': data.holeCount || '' };
+    Object.entries(map).forEach(([k,v])=>{
+      const cell = tr.querySelector(`[data-col="${k}"]`); if(cell) cell.textContent = v;
+    });
+  }
+
+  function formatNumber(value, digits=2){
+    if(value === '' || value === null || value === undefined) return '';
+    const num = Number(value);
+    return Number.isFinite(num) ? num.toFixed(digits) : '';
+  }
+
+  /* ========= 深さ/貫通・並目の有効無効 ========= */
+  function updateInputState(checkbox){
+    const wrap = checkbox.closest('.depth-input-wrapper'); if(!wrap) return;
+    const txt = wrap.querySelector('input[type="number"], input[type="text"]'); if(!txt) return;
+    txt.disabled = checkbox.checked;
+    if(checkbox.checked) txt.value = '';
+  }
+
+  /* ========= 工具カード 追加（押した数だけ / 3カラム整列：左→中→右…） ========= */
+  processSelector.addEventListener('click', (ev)=>{
+    const btn = ev.target.closest('.process-btn'); if(!btn) return;
+    const template = document.getElementById(btn.dataset.target);
+    if(!template){ console.error('template not found:', btn.dataset.target); return; }
+
+    const clone = template.cloneNode(true);
+    clone.removeAttribute('id');
+
+    // 既定で「貫通」「並目」をONにし、関連入力を無効化
+    clone.querySelectorAll('.penetration-checkbox input, .coarsethread-checkbox input').forEach(cb=>{
+      cb.checked = true; updateInputState(cb);
+    });
+
+    // 先頭に追加して最新カードが左上に揃う
+    displayArea.prepend(clone);
+  });
+
+  /* ========= 工具カード内：削除 / 計算実行 ========= */
+  displayArea.addEventListener('click', (ev)=>{
+    const removeBtn = ev.target.closest('.process-remove-btn');
+    if(removeBtn){
+      const card = removeBtn.closest('.process-column'); if(card) card.remove();
+      return;
+    }
+
+    const runBtn = ev.target.closest('.process-run-btn');
+    if(runBtn){
+      const card = runBtn.closest('.process-column');
+      const header = card.querySelector('.card-header span');
+      const toolName = header ? header.textContent.trim() : (runBtn.dataset.type || '');
+
+      if(runBtn.dataset.type === 'drill'){
+        handleDrillProcess(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'tap'){
+        handleTapProcess(card, toolName, runBtn);
+        return;
+      }
+
+      // 表示用の情報（簡易版）
+      let diameter = '';
+      const diaInput = card.querySelector('input[name*="diameter"], input[name*="machining_diameter"], input[name*="width"]');
+      if(diaInput && diaInput.value) diameter = diaInput.value.trim();
+
+      let holeCount = '';
+      const holeInput = card.querySelector('input[name$="_hole_count"]');
+      if(holeInput && holeInput.value) holeCount = holeInput.value.trim();
+
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, { toolName, diameter, holeCount });
+
+      // 実行したカードを削除
+      card.remove();
+      return;
+    }
+  });
+
+  /* ========= 入力変化で「既定チェック解除」 ========= */
+  document.addEventListener('input', (ev)=>{
+    const t = ev.target;
+    if(t.closest('.depth-input-wrapper') && (t.type==='number' || t.type==='text')){
+      const wrap = t.closest('.depth-input-wrapper');
+      const cb = wrap.querySelector('.penetration-checkbox input, .coarsethread-checkbox input');
+      if(cb){ cb.checked = false; updateInputState(cb); }
+    }
+  });
+
+  document.addEventListener('change', (ev)=>{
+    if(ev.target.matches('.penetration-checkbox input, .coarsethread-checkbox input')){
+      updateInputState(ev.target);
+    }
+  });
+
+  // 無効化テキストをクリックで復活
+  function handleDisabledInputActivation(ev){
+    const wrap = ev.target.closest('.depth-input-wrapper'); if(!wrap) return;
+    if(ev.target.closest('.penetration-checkbox, .coarsethread-checkbox')) return;
+    const txt = wrap.querySelector('input[type="number"], input[type="text"]'); if(!txt || !txt.disabled) return;
+    const cb = wrap.querySelector('.penetration-checkbox input, .coarsethread-checkbox input'); if(!cb) return;
+    cb.checked = false; updateInputState(cb);
+    requestAnimationFrame(()=>{ txt.focus(); if(typeof txt.select==='function') txt.select(); });
+  }
+  document.addEventListener('pointerdown', handleDisabledInputActivation, true);
+  document.addEventListener('mousedown', handleDisabledInputActivation, true);
+
+  /* ========= 入力変更で結果更新（ダミー） & 寸法派生値の反映 ========= */
+  const inputIds = ['material','plate_thickness','width','length','vise_parallel'];
+  const inputs = inputIds.map(id=>document.getElementById(id));
+  const weightEndpoint = "{% url 'calculate_weight' %}";
+  const removalEndpoint = "{% url 'calculate_removal_time' %}";
+  const drillProcessEndpoint = "{% url 'calculate_drill_process' %}";
+  const tapProcessEndpoint = "{% url 'calculate_tap_process' %}";
+  const weightDisplay = document.getElementById('weight_display');
+  const removalTimeInput = document.getElementById('removal_time');
+  const dimensionInputIds = ['plate_thickness','width','length'];
+  const machineHolder = document.getElementById('available_machines');
+  const judgementBox = document.getElementById('judgement_box');
+  const machineDefinitions = [
+    {key:'M1-1', label:'M1-1号機'},
+    {key:'M1-2', label:'M1-2号機'},
+    {key:'M1-3', label:'M1-3号機'},
+    {key:'M1-4', label:'M1-4号機'},
+    {key:'M1-7', label:'M1-7号機'},
+  ];
+  let calculationAbortController = null;
+
+  const setJudgementState = (state, message)=>{
+    if(!judgementBox) return;
+    judgementBox.classList.remove('judge-ok','judge-ng','judge-warn');
+    if(state==='ok'){ judgementBox.classList.add('judge-ok'); judgementBox.textContent = message ?? 'OK'; return; }
+    if(state==='ng'){ judgementBox.classList.add('judge-ng'); judgementBox.textContent = message ?? 'NG'; return; }
+    judgementBox.classList.add('judge-warn'); judgementBox.textContent = message ?? '入力待ち';
+  };
+
+  const renderMachineDisplay = (machineResults=null, state='idle')=>{
+    if(!machineHolder) return;
+    if(state==='loading'){
+      machineHolder.innerHTML = '<span class="badge bg-warning-subtle text-warning-emphasis border badge-machine">計算中</span>';
+      setJudgementState('warn','計算中');
+      return;
+    }
+    if(state==='error'){
+      machineHolder.innerHTML = '<span class="badge bg-danger-subtle text-danger-emphasis border badge-machine">計算不可</span>';
+      setJudgementState('warn','計算失敗');
+      return;
+    }
+    if(!machineResults){
+      machineHolder.innerHTML = '<span class="badge bg-secondary-subtle text-secondary-emphasis border badge-machine">入力待ち</span>';
+      setJudgementState('warn','入力待ち');
+      return;
+    }
+    const available = machineDefinitions.filter(def=>machineResults?.[def.key]);
+    machineHolder.innerHTML = available.length
+      ? available.map(def=>`<span class="badge bg-primary-subtle text-primary-emphasis border badge-machine">${def.label}</span>`).join('')
+      : '<span class="badge bg-danger-subtle text-danger-emphasis border badge-machine">対象なし</span>';
+    setJudgementState(available.length ? 'ok' : 'ng', available.length ? 'OK' : 'NG');
+  };
+
+  const resetDerivedDisplays = ()=>{
+    if(calculationAbortController){
+      calculationAbortController.abort();
+      calculationAbortController = null;
+    }
+    if(weightDisplay){
+      weightDisplay.textContent = '--';
+    }
+    if(removalTimeInput){
+      removalTimeInput.value = '';
+    }
+    renderMachineDisplay(null,'idle');
+  };
+
+  async function updateDimensionDerivedValues(){
+    if(!weightDisplay && !removalTimeInput) return;
+
+    const dimensions = dimensionInputIds.map(id=>{
+      const el = document.getElementById(id);
+      const value = parseFloat(el?.value ?? '');
+      return Number.isFinite(value) ? value : null;
+    });
+
+    if(dimensions.some(value=>value === null || value <= 0)){
+      resetDerivedDisplays();
+      return;
+    }
+
+    const [thickness, width, length] = dimensions;
+    const viseParallelInput = document.getElementById('vise_parallel');
+    const isParallel = Boolean(viseParallelInput?.checked);
+
+    if(weightDisplay){
+      weightDisplay.textContent = '計算中...';
+    }
+    if(removalTimeInput){
+      removalTimeInput.value = '計算中...';
+    }
+    renderMachineDisplay(null,'loading');
+
+    if(calculationAbortController){
+      calculationAbortController.abort();
+    }
+    calculationAbortController = new AbortController();
+    const { signal } = calculationAbortController;
+
+    try{
+      const weightParams = new URLSearchParams({
+        plate_thickness: thickness,
+        width,
+        length,
+      });
+      const weightResponse = await fetch(`${weightEndpoint}?${weightParams.toString()}`, {
+        signal,
+        headers: {'X-Requested-With':'XMLHttpRequest'},
+      });
+      if(!weightResponse.ok){
+        throw new Error('weight fetch failed');
+      }
+      const weightData = await weightResponse.json();
+      if(typeof weightData.weight !== 'number'){
+        throw new Error('weight missing');
+      }
+      const weightValue = weightData.weight;
+      if(weightDisplay){
+        weightDisplay.textContent = weightValue.toFixed(1);
+      }
+
+      const removalParams = new URLSearchParams({
+        plate_thickness: thickness,
+        width,
+        length,
+        weight: weightValue,
+        vise_parallel: String(isParallel),
+      });
+      const removalResponse = await fetch(`${removalEndpoint}?${removalParams.toString()}`, {
+        signal,
+        headers: {'X-Requested-With':'XMLHttpRequest'},
+      });
+      if(!removalResponse.ok){
+        throw new Error('removal fetch failed');
+      }
+      const removalData = await removalResponse.json();
+      if(removalTimeInput){
+        removalTimeInput.value =
+          typeof removalData.removal_time === 'number' ? removalData.removal_time.toFixed(2) : '';
+      }
+      renderMachineDisplay(removalData.machines ?? {});
+    }catch(error){
+      if(error.name === 'AbortError') return;
+      if(weightDisplay){
+        weightDisplay.textContent = '計算失敗';
+      }
+      if(removalTimeInput){
+        removalTimeInput.value = '計算失敗';
+      }
+      renderMachineDisplay(null,'error');
+    }finally{
+      calculationAbortController = null;
+    }
+  }
+
+  dimensionInputIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){
+      el.addEventListener('input', updateDimensionDerivedValues);
+    }
+  });
+  const viseParallelInput = document.getElementById('vise_parallel');
+  if(viseParallelInput){
+    viseParallelInput.addEventListener('change', updateDimensionDerivedValues);
+  }
+
+  async function handleDrillProcess(card, toolName, runBtn){
+    const diameterInput = card.querySelector('input[name="drill_diameter"]');
+    const depthInput = card.querySelector('input[name="drill_depth"]');
+    const holeCountInput = card.querySelector('input[name="drill_hole_count"]');
+    const penetrationInput = card.querySelector('input[name="drill_penetration"]');
+    const plateThicknessInput = document.getElementById('plate_thickness');
+
+    const diameter = parseFloat(diameterInput?.value ?? '');
+    if(!Number.isFinite(diameter) || diameter <= 0){
+      alert('ドリルの径を入力してください。');
+      return;
+    }
+
+    const isPenetration = Boolean(penetrationInput?.checked);
+    const plateThickness = parseFloat(plateThicknessInput?.value ?? '');
+    let depth = parseFloat(depthInput?.value ?? '');
+
+    if(isPenetration){
+      if(!Number.isFinite(plateThickness) || plateThickness <= 0){
+        alert('貫通の場合は板厚(t)を入力してください。');
+        return;
+      }
+      depth = plateThickness;
+    }else if(!Number.isFinite(depth) || depth <= 0){
+      alert('ドリルの深さを入力してください。');
+      return;
+    }
+
+    const numHoles = parseInt(holeCountInput?.value ?? '', 10);
+    if(!Number.isInteger(numHoles) || numHoles <= 0){
+      alert('ドリルの穴数を入力してください。');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      tool_type: 'drill',
+      diameter,
+      depth,
+      num_holes: numHoles,
+      penetration: isPenetration ? '1' : '0',
+    });
+    if(isPenetration){
+      params.set('plate_thickness', plateThickness);
+    }
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${drillProcessEndpoint}?${params.toString()}`, {
+        headers: {'X-Requested-With':'XMLHttpRequest'},
+      });
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'ドリル計算に失敗しました。');
+      }
+      const data = await response.json();
+
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || 'ドリル',
+        diameter: `${diameter}`,
+        holeCount: String(numHoles),
+      });
+
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('selected-tool', data.tool_name ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('tool-length', data.tool_length ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+
+  async function handleTapProcess(card, toolName, runBtn){
+    const sizeInput = card.querySelector('input[name="tap_m"]');
+    const pitchInput = card.querySelector('input[name="tap_pitch"]');
+    const depthInput = card.querySelector('input[name="tap_depth"]');
+    const holeCountInput = card.querySelector('input[name="tap_hole_count"]');
+    const penetrationInput = card.querySelector('input[name="tap_penetration"]');
+    const coarseInput = card.querySelector('input[name="tap_coarsethread"]');
+    const plateThicknessInput = document.getElementById('plate_thickness');
+
+    const rawSize = (sizeInput?.value ?? '').trim();
+    if(!rawSize){
+      alert('タップの呼径(M)を入力してください。');
+      return;
+    }
+
+    const isPenetration = Boolean(penetrationInput?.checked);
+    const plateThickness = parseFloat(plateThicknessInput?.value ?? '');
+    let depth = parseFloat(depthInput?.value ?? '');
+    if(isPenetration){
+      if(!Number.isFinite(plateThickness) || plateThickness <= 0){
+        alert('貫通の場合は板厚(t)を入力してください。');
+        return;
+      }
+      depth = plateThickness;
+    }else if(!Number.isFinite(depth) || depth <= 0){
+      alert('タップの深さを入力してください。');
+      return;
+    }
+
+    const isCoarse = Boolean(coarseInput?.checked);
+
+    let pitchValue = parseFloat(pitchInput?.value ?? '');
+    if(isCoarse){
+      pitchValue = null;
+    }else if(!Number.isFinite(pitchValue) || pitchValue <= 0){
+      alert('ピッチを入力してください。');
+      return;
+    }
+
+    const numHoles = parseInt(holeCountInput?.value ?? '', 10);
+    if(!Number.isInteger(numHoles) || numHoles <= 0){
+      alert('タップの孔数を入力してください。');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      tool_type: 'tap',
+      tap_m: rawSize,
+      depth,
+      num_holes: numHoles,
+      penetration: isPenetration ? '1' : '0',
+    });
+    if(!isCoarse && pitchValue !== null){
+      params.set('pitch', pitchValue);
+    }
+    if(isPenetration){
+      params.set('plate_thickness', plateThickness);
+    }
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${tapProcessEndpoint}?${params.toString()}`, {
+        headers: {'X-Requested-With':'XMLHttpRequest'},
+      });
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'タップ計算に失敗しました。');
+      }
+      const data = await response.json();
+
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || 'タップ',
+        diameter: data.diameter ?? rawSize,
+        holeCount: String(numHoles),
+      });
+
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pre-hole', data.pilot_hole_diameter ?? '');
+      assign('pitch', data.pitch ?? pitchValue ?? '');
+      assign('selected-tool', data.tool_name ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('tool-length', data.tool_length ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  function updateResults(){
+    document.getElementById('total_processing_time').value = (Math.random()*10+5).toFixed(2);
+    document.getElementById('setup_time_count').value = '1';
+    document.getElementById('setup_time_long').value = '10';
+  }
+  inputs.forEach(el=>el && el.addEventListener('input', updateResults));
+
+  updateDimensionDerivedValues();
+
+  /* ========= リセット ========= */
+  document.getElementById('reset_all').addEventListener('click', ()=>{
+    // 入力クリア
+    ['plate_thickness','width','length'].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value='';
+    });
+    const mat = document.getElementById('material'); if(mat) mat.selectedIndex=0;
+    const vise = document.getElementById('vise_parallel'); if(vise) vise.checked=false;
+    resetDerivedDisplays();
+
+    ['total_processing_time','setup_time_count','setup_time_long'].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value='';
+    });
+
+    // 工具カード消去
+    displayArea.innerHTML = '';
+
+    // 手順テーブルクリア
+    const tbody = procedureTable.querySelector('tbody'); if(tbody) tbody.innerHTML = '';
+  });
+});
+</script>
+
+</body>
+</html>
