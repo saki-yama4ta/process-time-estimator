@@ -1,4 +1,4 @@
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from django.db import connection
 from django.http import JsonResponse
@@ -19,6 +19,17 @@ def calculator_view(request):
     # 現時点ではUIを表示するだけです。
     # 今後、計算ロジックなどをここに追加していきます。
     return render(request, "calculator/index.html")
+
+
+# def _seconds_from_minutes_rounded(minutes: float) -> float:
+#     """
+#     分[min]を秒[s]に換算し、小数第2位で四捨五入して返す。
+#     """
+#     return float(
+#         (Decimal(str(minutes)) * Decimal(60)).quantize(
+#             Decimal("0.01"), rounding=ROUND_HALF_UP
+#         )
+#     )
 
 
 def _parse_dimension_param(request, param_name: str) -> float:
@@ -90,7 +101,8 @@ def _fetch_tap_tool_conditions(
     ]
     params = [diameter]
 
-    depth_clause = "CAST(depth AS NUMERIC) = %s" if exact_depth else "CAST(depth AS NUMERIC) >= %s"
+    # 深さは常に「required_depth以上」で検索する
+    depth_clause = "CAST(depth AS NUMERIC) >= %s"
     clauses.append("depth ~ '^[0-9.]+$'")
     clauses.append(depth_clause)
     params.append(depth_decimal)
@@ -322,7 +334,7 @@ def calculate_drill_process_view(request):
 
     if max_depth_value < depth:
         return JsonResponse(
-            {"error": "工具の対応深さを超えています。"}, status=400
+            {"error": "加工不可：工具の対応深さを超えています。"}, status=400
         )
 
     drill = Drill(
@@ -333,8 +345,8 @@ def calculate_drill_process_view(request):
         num_holes=num_holes,
     )
 
-    processing_minutes = drill.processing_time
-    processing_seconds = round(processing_minutes * 60, 2)
+    processing_minutes = drill.processing_time_min
+    processing_seconds = drill.processing_time_sec
 
     return JsonResponse(
         {
@@ -456,7 +468,14 @@ def calculate_tap_process_view(request):
         try:
             db_pitch_value = float(db_pitch)
         except (TypeError, ValueError):
-            return JsonResponse({"error": "DB????????????????????"}, status=500)
+            return JsonResponse({"error": "加工不可：ピッチ情報が不正です。"}, status=400)
+
+    db_feed_value = None
+    if db_feed is not None:
+        try:
+            db_feed_value = float(db_feed)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "加工不可：送り情報が不正です。"}, status=400)
 
     if max_depth_value < depth:
         return JsonResponse(
@@ -469,7 +488,8 @@ def calculate_tap_process_view(request):
             {"error": "加工不可：ピッチ情報が取得できませんでした。"}, status=400
         )
 
-    feed_value = float(effective_pitch)
+    # 送りの優先順位: DB送りがあればそれを使用、なければピッチと同じ値
+    feed_value = db_feed_value if db_feed_value is not None else float(effective_pitch)
 
     try:
         (
@@ -505,23 +525,24 @@ def calculate_tap_process_view(request):
         pilot_feed=pilot_feed_value,
     )
 
-    tap_cut_minutes = _calc_drill_cycle_time_minutes(
-        surface_speed=surface_speed_value,
-        diameter=float(diameter_decimal),
-        depth=depth,
-        feed=feed_value,
-        num_holes=num_holes,
-    )
-    pilot_cut_minutes = _calc_drill_cycle_time_minutes(
-        surface_speed=pilot_surface_speed_value,
-        diameter=pilot_hole_value,
-        depth=depth,
-        feed=pilot_feed_value,
-        num_holes=num_holes,
-    )
-    total_minutes = tap_cut_minutes + pilot_cut_minutes
-    processing_minutes = round(total_minutes, 2)
-    processing_seconds = round(total_minutes * 60, 2)
+    # tap_cut_minutes = _calc_drill_cycle_time_minutes(
+    #     surface_speed=surface_speed_value,
+    #     diameter=float(diameter_decimal),
+    #     depth=depth,
+    #     feed=feed_value,
+    #     num_holes=num_holes,
+    # )
+    # pilot_cut_minutes = _calc_drill_cycle_time_minutes(
+    #     surface_speed=pilot_surface_speed_value,
+    #     diameter=pilot_hole_value,
+    #     depth=depth,
+    #     feed=pilot_feed_value,
+    #     num_holes=num_holes,
+    # )
+    
+    #total_minutes = tap_cut_minutes + pilot_cut_minutes
+    processing_minutes = tap.processing_time_min
+    processing_seconds = tap.processing_time_sec
 
     return JsonResponse(
         {

@@ -6,6 +6,7 @@ Notes:
 """
 
 import math
+from decimal import Decimal, ROUND_HALF_UP
 
 
 # --- 定数 ---
@@ -263,18 +264,44 @@ def calc_feed_speed(feed: float, rpm: float) -> float:
     feed_speed = feed * rpm
     return feed_speed
 
+def calc_num_cutting_depths(depth: float, cutting_depth: float) -> float:
+    """
+    Z回数を算出する関数 ※切り上げ
+
+    Args:
+        depth: 深さ [mm]
+        cutting_depth: 切り込み量 [mm]
+
+    Returns:
+        num_cutting_depths
+    """
+    num_cutting_depths = depth / cutting_depth
+    return math.ceil(num_cutting_depths)
+
+
+def rounding_two_decimal(value: float) -> Decimal:
+    """
+    小数値を四捨五入して小数第2位までに丸める関数
+
+    Args
+        value: 丸めたい値
+
+    Returns
+        rounded_value: 小数第2位まで四捨五入された値
+    """
+    rounded_value = Decimal(str(value)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+    return rounded_value
+
 
 class Drill:
     """
     ドリル加工を条件から加工時間を算出するクラス
 
     Attributes:
-        _diameter: ドリル径 [mm]
-        _surface_speed: 周速 [m/min]
-        _depth: 加工深さ [mm]
-        _feed: 送り [mm/rev]
-        _num_holes: 穴数
-        processing_time: 加工時間 [min]
+        processing_time_min: 加工時間（分） [min]
+        processing_time_sec: 加工時間（秒） [min]
         non_processing_time: 非加工時間 [sec]
         long_setup_time: 段取時間(長) [sec]
         short_setup_time: 段取時間(短) [sec]
@@ -288,54 +315,53 @@ class Drill:
         feed: float,
         num_holes: int,
     ):
+        """
+        Args:
+            diameter: ドリル径 [mm]
+            surface_speed: 周速 [m/min]
+            depth: 加工深さ [mm]
+            feed: 送り [mm/rev]
+            num_holes: 穴数
+        """
         self._diameter = diameter
         self._surface_speed = surface_speed
         self._depth = depth
         self._feed = feed
         self._num_holes = num_holes
 
-        self._validate_value()
-        self.processing_time = round(self._calc_processing_time(), 2)
+        # --- 加工時間の算出 ---
+        self.processing_time_min = self._calc_processing_time()
+        self.processing_time_sec = self.processing_time_min * 60
+        ## 四捨五入
+        self.processing_time_min = rounding_two_decimal(value=self.processing_time_min)
+        self.processing_time_sec = rounding_two_decimal(value=self.processing_time_sec)
+
+        # --- その他の算出 ---
         self.non_processing_time = self._calc_non_processing_time()
         self.long_setup_time = self._calc_long_setup_time()
         self.short_setup_time = self._calc_short_setup_time()
-
-
-    def _validate_value(self):
-        """値の妥当性を確認するメソッド"""
-        if self._diameter <= 0:
-            raise ValueError("ドリル径は0より大きい値を指定してください。")
-        if self._surface_speed <= 0:
-            raise ValueError("周速は0より大きい値を指定してください。")
-        if self._feed <= 0:
-            raise ValueError("送りは0より大きい値を指定してください。")
-        if self._depth < 0:
-            raise ValueError("深さは0より大きい値を指定してください。")
-        if self._num_holes < 0:
-            raise ValueError("穴数は1以上を指定してください。")
-
 
     def _calc_processing_time(self) -> float:
         """
         加工時間を算出するメソッド
 
         Returns:
-            processing_time: 加工時間 [min]
+            processing_time_min: 加工時間（分） [min]
         """
-        revolutions_per_minute = calc_rpm(surface_speed=self._surface_speed, diameter=self._diameter)
-        processing_time = (
-            (((self._depth / (self._feed * revolutions_per_minute)) * 60) * 2)
-            * self._num_holes
-            / 60
+        revolutions_per_minute = calc_rpm(
+            surface_speed=self._surface_speed, diameter=self._diameter
         )
-        return processing_time
+        feed_speed = calc_feed_speed(feed=self._feed, rpm=revolutions_per_minute)
+        processing_time_min = ((self._depth / feed_speed) * 2) * self._num_holes
+
+        return processing_time_min
 
     def _calc_non_processing_time(self) -> float:
         """
         非加工時間を算出するメソッド
 
         Returns:
-            non_processing_time: 加工時間 [min]
+            non_processing_time: 非加工時間 [min]
         """
         non_processing_time = 20 + self._num_holes * 5
         return non_processing_time
@@ -345,7 +371,7 @@ class Drill:
         段取時間(長)を算出するメソッド
 
         Returns:
-            long_setup_time: 段取時間(長)
+            long_setup_time: 段取時間(長) [min]
         """
         long_setup_time = 244 + self._num_holes * 30
         return long_setup_time
@@ -355,7 +381,7 @@ class Drill:
         段取時間(短)を算出するメソッド
 
         Returns:
-            short_setup_time: 段取時間(短)
+            short_setup_time: 段取時間(短) [min]
         """
         short_setup_time = 244 + self._num_holes * 20
         return short_setup_time
@@ -366,39 +392,57 @@ class Tap(Drill):
     タップ加工を条件から加工時間を算出するクラス
 
     Attributes:
-        _diameter: タップ径 [mm]
-        _surface_speed: 周速 [m/min]
-        _depth: 加工深さ [mm]
-        _feed: 送り [mm/rev]
-        _num_holes: 穴数
-        _pilot_diameter: 下穴径 [mm]
-        _pilot_surface_speed: 下穴の周速 [m/min]
-        _pilot_feed: 下穴の送り [mm/rev]
-        processing_time: 加工時間 [min]
+        processing_time_min: 加工時間（分） [min]
+        processing_time_sec: 加工時間（秒） [min]
         non_processing_time: 非加工時間 [sec]
         long_setup_time: 段取時間(長) [sec]
         short_setup_time: 段取時間(短) [sec]
-
     """
-    def __init__(self, diameter, surface_speed, depth, feed, num_holes, pilot_diameter: float, pilot_surface_speed: float, pilot_feed: float):
-        # --- タップの加工時間の算出 ---
-        super().__init__(diameter, surface_speed, depth, feed, num_holes)
-        tap_processing_time = self.processing_time
 
-        # --- 下穴の加工時間の算出 ---
-        self._pilot_diameter = pilot_diameter
-        self._pilot_surface_speed = pilot_surface_speed
-        self._pilot_feed = pilot_feed
-        if self._pilot_diameter < 0:
-            raise ValueError("下穴径は0より大きい値を指定してください。")
-        if self._pilot_surface_speed < 0:
-            raise ValueError("下穴の周速は0より大きい値を指定してください。")
-        if self._pilot_feed <= 0:
-            raise ValueError("下穴の送りは0より大きい値を指定してください。")
-        drill = Drill(diameter=self._pilot_diameter, surface_speed=self._pilot_surface_speed, depth=self._depth, feed=self._pilot_feed, num_holes=self._num_holes)
-        self.processing_time = round((tap_processing_time + drill.processing_time), 2)
+    def __init__(
+        self,
+        diameter,
+        surface_speed,
+        depth,
+        feed,
+        num_holes,
+        pilot_diameter: float,
+        pilot_surface_speed: float,
+        pilot_feed: float,
+    ):
+        """
+        Args:
+            diameter: タップ径 [mm]
+            surface_speed: 周速 [m/min]
+            depth: 加工深さ [mm]
+            feed: 送り [mm/rev]
+            num_holes: 穴数
+            pilot_diameter: 下穴径 [mm]
+            pilot_surface_speed: 下穴の周速 [m/min]
+            pilot_feed: 下穴の送り [mm/rev]
+        """
+        self._diameter = diameter
+        self._surface_speed = surface_speed
+        self._depth = depth
+        self._feed = feed
+        self._num_holes = num_holes
 
-        # --- まとめ ---
+        # --- 加工時間の算出 ---
+        ## タップのみ
+        tap_processing_time_min = self._calc_processing_time()
+        ## 下穴
+        self._diameter = pilot_diameter
+        self._surface_speed = pilot_surface_speed
+        self._feed = pilot_feed
+        pilot_processing_time_min = self._calc_processing_time()
+        ## 合算
+        self.processing_time_min = tap_processing_time_min + pilot_processing_time_min
+        self.processing_time_sec = self.processing_time_min * 60
+        ## 四捨五入
+        self.processing_time_min = rounding_two_decimal(value=self.processing_time_min)
+        self.processing_time_sec = rounding_two_decimal(value=self.processing_time_sec)
+
+        # --- その他の算出 ---
         self.non_processing_time = self._calc_non_processing_time()
         self.long_setup_time = self._calc_long_setup_time()
         self.short_setup_time = self._calc_short_setup_time()
@@ -408,7 +452,7 @@ class Tap(Drill):
         非加工時間を算出するメソッド
 
         Returns:
-            non_processing_time: 加工時間 [min]
+            non_processing_time: 非加工時間 [min]
         """
         non_processing_time = 40 + self._num_holes * 15
         return non_processing_time
@@ -418,7 +462,7 @@ class Tap(Drill):
         段取時間(長)を算出するメソッド
 
         Returns:
-            long_setup_time: 段取時間(長)
+            long_setup_time: 段取時間(長) [min]
         """
         long_setup_time = 366 + self._num_holes * 30
         return long_setup_time
@@ -428,9 +472,337 @@ class Tap(Drill):
         段取時間(短)を算出するメソッド
 
         Returns:
-            short_setup_time: 段取時間(短)
+            short_setup_time: 段取時間(短) [min]
         """
         short_setup_time = 150 + self._num_holes * 20
+        return short_setup_time
+    
+class PerfectCircleEndMill:
+    """
+    エンドミルの真円を条件から加工時間を算出するクラス
+
+    Attributes:
+        processing_time_min: 加工時間（分） [min]
+        processing_time_sec: 加工時間（秒） [min]
+        non_processing_time: 非加工時間 [sec]
+        long_setup_time: 段取時間(長) [sec]
+        short_setup_time: 段取時間(短) [sec]
+    """
+
+    def __init__(
+        self,
+        diameter: float,
+        num_holes: int,
+        depth: float,
+        cutting_depth: float,
+        tool_diameter: float,
+        surface_speed: float,
+        feed: float,
+    ):
+        """
+        Args:
+            diameter: 加工径 [mm]
+            num_holes: 穴数
+            depth: 深さ [mm]
+            cutting_depth: 切り込み量 [mm]
+            tool_diameter: 工具径 [mm]
+            surface_speed: 周速 [m/min]
+            depth: 加工深さ [mm]
+            feed: 送り [mm/rev]
+        """
+        self._diameter = diameter
+        self._num_holes = num_holes
+        self._depth = depth
+        self._cutting_depth = cutting_depth
+        self._tool_diameter = tool_diameter
+        self._surface_speed = surface_speed
+        self._feed = feed
+
+        # --- 加工時間の算出 ---
+        self.processing_time_min = self._calc_processing_time()
+        self.processing_time_sec = self.processing_time_min * 60
+        ## 四捨五入
+        self.processing_time_min = rounding_two_decimal(value=self.processing_time_min)
+        self.processing_time_sec = rounding_two_decimal(value=self.processing_time_sec)
+
+        # --- その他の算出 ---
+        self.non_processing_time = self._calc_non_processing_time()
+        self.long_setup_time = self._calc_long_setup_time()
+        self.short_setup_time = self._calc_short_setup_time()
+
+    def _calc_cutting_length(self) -> float:
+        """
+        切削長を算出するメソッド
+
+        Returns:
+            cutting_length: 切削長 [mm]
+        """
+        cutting_length = self._diameter * math.pi * self._num_holes
+        return cutting_length
+
+    def _calc_processing_time(self) -> float:
+        """
+        加工時間を算出するメソッド
+
+        Returns:
+            processing_time_min: 加工時間（分） [min]
+        """
+        revolutions_per_minute = calc_rpm(
+            surface_speed=self._surface_speed, diameter=self._tool_diameter
+        )
+        feed_speed = calc_feed_speed(feed=self._feed, rpm=revolutions_per_minute)
+        cutting_length = self._calc_cutting_length()
+        num_cutting_depths = calc_num_cutting_depths(
+            depth=self._depth, cutting_depth=self._cutting_depth
+        )
+        processing_time_min = (cutting_length * num_cutting_depths) / feed_speed
+        return processing_time_min
+
+    def _calc_non_processing_time(self) -> float:
+        """
+        非加工時間を算出するメソッド
+
+        Returns:
+            non_processing_time: 非加工時間 [min]
+        """
+        non_processing_time = 10 + self._num_holes * 3
+        return non_processing_time
+
+    def _calc_long_setup_time(self):
+        """
+        段取時間(長)を算出するメソッド
+
+        Returns:
+            long_setup_time: 段取時間(長)
+        """
+        long_setup_time = 265 + self._num_holes * 40
+        return long_setup_time
+
+    def _calc_short_setup_time(self):
+        """
+        段取時間(短)を算出するメソッド
+
+        Returns:
+            short_setup_time: 段取時間(短)
+        """
+        short_setup_time = 165 + self._num_holes * 40
+        return short_setup_time
+
+
+class SideEndMill:
+    """
+    エンドミルの側面を条件から加工時間を算出するクラス
+
+    Attributes:
+        processing_time_min: 加工時間（分） [min]
+        processing_time_sec: 加工時間（秒） [min]
+        non_processing_time: 非加工時間 [sec]
+        long_setup_time: 段取時間(長) [sec]
+        short_setup_time: 段取時間(短) [sec]
+    """
+
+    def __init__(
+        self,
+        depth: float,
+        cutting_depth: float,
+        tool_diameter: float,
+        surface_speed: float,
+        feed: float,
+        cutting_length: float,
+    ):
+        """
+        Args:
+            depth: 深さ [mm]
+            cutting_depth: 切り込み量 [mm]
+            tool_diameter: 工具径 [mm]
+            surface_speed: 周速 [m/min]
+            depth: 加工深さ [mm]
+            feed: 送り [mm/rev]
+            cutting_length: 切削長 [mm]
+        """
+        self._depth = depth
+        self._cutting_depth = cutting_depth
+        self._tool_diameter = tool_diameter
+        self._surface_speed = surface_speed
+        self._feed = feed
+        self._cutting_length = cutting_length
+
+        # --- 加工時間の算出 ---
+        self.processing_time_min = self._calc_processing_time()
+        self.processing_time_sec = self.processing_time_min * 60
+        ## 四捨五入
+        self.processing_time_min = rounding_two_decimal(value=self.processing_time_min)
+        self.processing_time_sec = rounding_two_decimal(value=self.processing_time_sec)
+
+        # --- その他の算出 ---
+        self.non_processing_time = self._calc_non_processing_time()
+        self.long_setup_time = self._calc_long_setup_time()
+        self.short_setup_time = self._calc_short_setup_time()
+
+    def _calc_processing_time(self) -> float:
+        """
+        加工時間を算出するメソッド
+
+        Returns:
+            processing_time_min: 加工時間（分） [min]
+        """
+        revolutions_per_minute = calc_rpm(
+            surface_speed=self._surface_speed, diameter=self._tool_diameter
+        )
+        feed_speed = calc_feed_speed(feed=self._feed, rpm=revolutions_per_minute)
+        num_cutting_depths = calc_num_cutting_depths(
+            depth=self._depth, cutting_depth=self._cutting_depth
+        )
+        processing_time_min = (
+            (self._cutting_length * num_cutting_depths) / feed_speed
+        ) * 1.25
+        return processing_time_min
+
+    def _calc_non_processing_time(self) -> float:
+        """
+        非加工時間を算出するメソッド
+
+        Returns:
+            non_processing_time: 非加工時間 [min]
+        """
+        non_processing_time = 10
+        return non_processing_time
+
+    def _calc_long_setup_time(self):
+        """
+        段取時間(長)を算出するメソッド
+
+        Returns:
+            long_setup_time: 段取時間(長)
+        """
+        long_setup_time = 285
+        return long_setup_time
+
+    def _calc_short_setup_time(self):
+        """
+        段取時間(短)を算出するメソッド
+
+        Returns:
+            short_setup_time: 段取時間(短)
+        """
+        short_setup_time = 165
+        return short_setup_time
+
+
+class LongHoleEndMill:
+    """
+    エンドミルの長穴を条件から加工時間を算出するクラス
+
+    Attributes:
+        processing_time_min: 加工時間（分） [min]
+        processing_time_sec: 加工時間（秒） [min]
+        non_processing_time: 非加工時間 [sec]
+        long_setup_time: 段取時間(長) [sec]
+        short_setup_time: 段取時間(短) [sec]
+    """
+
+    def __init__(
+        self,
+        width: float,
+        length: float,
+        num_holes: int,
+        depth: float,
+        cutting_depth: float,
+        tool_diameter: float,
+        surface_speed: float,
+        feed: float,
+    ):
+        """
+        Args:
+            width: 幅 [mmm]
+            length: 長さ [mm]
+            num_holes: 穴数
+            depth: 深さ [mm]
+            cutting_depth: 切り込み量 [mm]
+            tool_diameter: 工具径 [mm]
+            surface_speed: 周速 [m/min]
+            depth: 加工深さ [mm]
+            feed: 送り [mm/rev]
+        """
+        self._width = width
+        self._length = length
+        self._num_holes = num_holes
+        self._depth = depth
+        self._cutting_depth = cutting_depth
+        self._tool_diameter = tool_diameter
+        self._surface_speed = surface_speed
+        self._feed = feed
+
+        # --- 加工時間の算出 ---
+        self.processing_time_min = self._calc_processing_time()
+        self.processing_time_sec = self.processing_time_min * 60
+        ## 四捨五入
+        self.processing_time_min = rounding_two_decimal(value=self.processing_time_min)
+        self.processing_time_sec = rounding_two_decimal(value=self.processing_time_sec)
+
+        # --- その他の算出 ---
+        self.non_processing_time = self._calc_non_processing_time()
+        self.long_setup_time = self._calc_long_setup_time()
+        self.short_setup_time = self._calc_short_setup_time()
+
+    def _calc_cutting_length(self) -> float:
+        """
+        切削長を算出するメソッド
+
+        Returns:
+            cutting_length: 切削長 [mm]
+        """
+        cutting_length = (
+            (self._width * math.pi) + (self._length * 2)
+        ) * self._num_holes
+        return cutting_length
+
+    def _calc_processing_time(self) -> float:
+        """
+        加工時間を算出するメソッド
+
+        Returns:
+            processing_time_min: 加工時間（分） [min]
+        """
+        revolutions_per_minute = calc_rpm(
+            surface_speed=self._surface_speed, diameter=self._tool_diameter
+        )
+        feed_speed = calc_feed_speed(feed=self._feed, rpm=revolutions_per_minute)
+        cutting_length = self._calc_cutting_length()
+        num_cutting_depths = calc_num_cutting_depths(
+            depth=self._depth, cutting_depth=self._cutting_depth
+        )
+        processing_time_min = ((cutting_length * num_cutting_depths) / feed_speed) * 1.3
+        return processing_time_min
+
+    def _calc_non_processing_time(self) -> float:
+        """
+        非加工時間を算出するメソッド
+
+        Returns:
+            non_processing_time: 非加工時間 [min]
+        """
+        non_processing_time = 30 + self._num_holes * 5
+        return non_processing_time
+
+    def _calc_long_setup_time(self):
+        """
+        段取時間(長)を算出するメソッド
+
+        Returns:
+            long_setup_time: 段取時間(長)
+        """
+        long_setup_time = 389 + self._num_holes * 30
+        return long_setup_time
+
+    def _calc_short_setup_time(self):
+        """
+        段取時間(短)を算出するメソッド
+
+        Returns:
+            short_setup_time: 段取時間(短)
+        """
+        short_setup_time = 269 + self._num_holes * 30
         return short_setup_time
 
 
@@ -454,7 +826,75 @@ if __name__ == "__main__":
     # --- ドリル ---
     drill = Drill(diameter=12, surface_speed=100, depth=15.5, feed=0.25, num_holes=6)
     print("ドリル")
-    print(f"加工時間: {drill.processing_time}")
+    print(f"加工時間（分）: {drill.processing_time_min}")
+    print(f"加工時間（秒）: {drill.processing_time_sec}")
     print(f"非加工時間: {drill.non_processing_time}")
     print(f"段取時間(長): {drill.long_setup_time}")
     print(f"段取時間(短): {drill.short_setup_time}")
+
+    # --- タップ ---
+    tap = Tap(
+        diameter=6,
+        surface_speed=15,
+        depth=10,
+        feed=1,
+        num_holes=3,
+        pilot_diameter=5.54,
+        pilot_surface_speed=100,
+        pilot_feed=0.15,
+    )
+    print("タップ")
+    print(f"加工時間（分）: {tap.processing_time_min}")
+    print(f"加工時間（秒）: {tap.processing_time_sec}")
+    print(f"非加工時間: {tap.non_processing_time}")
+    print(f"段取時間(長): {tap.long_setup_time}")
+    print(f"段取時間(短): {tap.short_setup_time}")
+
+    # --- エンドミル ---
+    endmill = PerfectCircleEndMill(
+        diameter=50,
+        num_holes=2,
+        depth=10,
+        cutting_depth=20,
+        tool_diameter=16,
+        surface_speed=100,
+        feed=0.25,
+    )
+    print("真円")
+    print(f"加工時間（分）: {endmill.processing_time_min}")
+    print(f"加工時間（秒）: {endmill.processing_time_sec}")
+    print(f"非加工時間: {endmill.non_processing_time}")
+    print(f"段取時間(長): {endmill.long_setup_time}")
+    print(f"段取時間(短): {endmill.short_setup_time}")
+
+    endmill = SideEndMill(
+        depth=20,
+        cutting_depth=20,
+        tool_diameter=16,
+        surface_speed=100,
+        feed=0.25,
+        cutting_length=200,
+    )
+    print("側面")
+    print(f"加工時間（分）: {endmill.processing_time_min}")
+    print(f"加工時間（秒）: {endmill.processing_time_sec}")
+    print(f"非加工時間: {endmill.non_processing_time}")
+    print(f"段取時間(長): {endmill.long_setup_time}")
+    print(f"段取時間(短): {endmill.short_setup_time}")
+
+    endmill = LongHoleEndMill(
+        width=20,
+        length=100,
+        num_holes=4,
+        depth=5,
+        cutting_depth=15,
+        tool_diameter=10,
+        surface_speed=80,
+        feed=0.2,
+    )
+    print("長穴")
+    print(f"加工時間（分）: {endmill.processing_time_min}")
+    print(f"加工時間（秒）: {endmill.processing_time_sec}")
+    print(f"非加工時間: {endmill.non_processing_time}")
+    print(f"段取時間(長): {endmill.long_setup_time}")
+    print(f"段取時間(短): {endmill.short_setup_time}")
