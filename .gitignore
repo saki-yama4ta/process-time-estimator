@@ -5,3 +5,4 @@ tap_tools_sjis.csv
 calculator/__pycache__/calculations.cpython-311.pyc
 calculator/__pycache__/urls.cpython-311.pyc
 calculator/__pycache__/views.cpython-311.pyc
+.venv
