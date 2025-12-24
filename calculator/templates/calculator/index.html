@@ -85,6 +85,10 @@
                   <label for="material" class="form-label mb-1 small">材質</label>
                   <select id="material" name="material" class="form-select form-select-sm">
                     <option value="SS400">SS400</option>
+                    <option value="SM490A">SM490A</option>
+                    <option value="S45C">S45C</option>
+                    <option value="SM400A">SM400A</option>
+                    <option value="SM490YB">SM490YB</option>
                   </select>
                 </div>
 
@@ -206,8 +210,8 @@
         <table id="process_procedure_table" class="table table-sm table-bordered align-middle text-center">
           <thead class="table-light">
             <tr>
-              <th>No.</th><th>加工詳細</th><th>径</th>
-              <th>下孔/切削長</th><th>ピッチ</th><th>孔数</th>
+              <th>No.</th><th>加工詳細</th><th>加工径/工具径</th>
+              <th>ピッチ</th><th>下孔径/切削長</th><th>孔数</th>
               <th>工具</th><th>加工秒</th><th>加工分</th>
               <th>工具長</th><th>加工判断</th><th>非加工</th>
               <th>段取長</th><th>段取短</th>
@@ -229,7 +233,7 @@
         <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-endmill-circle">エンドミル(真円)</button>
         <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-endmill-side">エンドミル(側面)</button>
         <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-slot">長孔</button>
-        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-chamfer-circle">真円面取り</button>
+        <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-chamfer-circle">面取り(真円)</button>
         <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-chamfer-side">面取り(側面)</button>
         <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-boring">ボーリング</button>
         <button class="btn btn-sm btn-outline-secondary process-btn" data-target="column-reamer">リーマ</button>
@@ -361,10 +365,10 @@
               </div>
             </div>
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">取代(面積) (Sf)</label>
+          <div class="mb-2"><label class="form-label mb-1 small">取代(幅) (Sf)</label>
             <input type="number" name="endmill_circle_removal" class="form-control form-control-sm">
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">刃長</label>
+          <div class="mb-2"><label class="form-label mb-1 small">刃先R</label>
             <input type="number" name="endmill_circle_cutting_edge" class="form-control form-control-sm">
           </div>
           <div class="mb-2"><label class="form-label mb-1 small">加工径 (Dh)</label>
@@ -408,16 +412,17 @@
               </div>
             </div>
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">取代(面積) (Sf)</label>
+          <div class="mb-2"><label class="form-label mb-1 small">取代(幅) (Sf)</label>
             <input type="number" name="endmill_side_removal" class="form-control form-control-sm">
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">刃長</label>
+          <div class="mb-2"><label class="form-label mb-1 small">刃先R</label>
             <input type="number" name="endmill_side_cutting_edge" class="form-control form-control-sm">
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">刃先長 (Lc)</label>
+          <div class="mb-2"><label class="form-label mb-1 small">切削長 (Lc)</label>
             <input type="number" name="endmill_side_cutting_length" class="form-control form-control-sm">
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">最小R (直線≦99)</label>
+          <div class="mb-2"><label class="form-label mb-1 small">最小内R（直線：999）
+          </label>
             <input type="number" name="endmill_side_minimum_inner_radius" class="form-control form-control-sm">
           </div>
           <div class="process-run-container">
@@ -461,7 +466,7 @@
               </div>
             </div>
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">刃長</label>
+          <div class="mb-2"><label class="form-label mb-1 small">刃先R</label>
             <input type="number" name="slot_cutting_edge" class="form-control form-control-sm">
           </div>
           <div class="mb-2"><label class="form-label mb-1 small">孔数</label>
@@ -483,10 +488,10 @@
     </div>
   </div>
 
-  <!-- 真円面取り -->
+  <!-- 面取り(真円) -->
   <div id="column-chamfer-circle" class="process-column card">
     <div class="card-header py-2 d-flex align-items-center justify-content-between">
-      <span class="fw-bold small">真円面取り</span>
+      <span class="fw-bold small">面取り(真円)</span>
       <button type="button" class="btn btn-sm btn-outline-secondary process-remove-btn" aria-label="delete">&times;</button>
     </div>
     <div class="card-body">
@@ -536,10 +541,10 @@
           <div class="mb-2"><label class="form-label mb-1 small">加工幅 (Wc)</label>
             <input type="text" name="chamfer_side_processing_width" class="form-control form-control-sm">
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">刃先長 (Lc)</label>
+          <div class="mb-2"><label class="form-label mb-1 small">切削長 (Lc)</label>
             <input type="number" name="chamfer_side_cutting_length" class="form-control form-control-sm">
           </div>
-          <div class="mb-2"><label class="form-label mb-1 small">最小R (直線≦99)</label>
+          <div class="mb-2"><label class="form-label mb-1 small">最小内R (直線：999）</label>
             <input type="number" name="chamfer_side_minimum_inner_radius" class="form-control form-control-sm">
           </div>
           <div class="process-run-container">
@@ -750,7 +755,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const procedureTable    = document.getElementById('process_procedure_table');
 
   /* ========= テーブル行生成（簡易） ========= */
-  const procedureColumns = ['tool','diameter','pre-hole','pitch','hole-count','selected-tool','time-seconds','time-minutes','tool-length','judge','non-processing','setup-long','setup-short'];
+  const procedureColumns = ['tool','diameter','pitch','pre-hole','hole-count','selected-tool','time-seconds','time-minutes','tool-length','judge','non-processing','setup-long','setup-short'];
 
   function createProcedureRow(tbody){
     const idx = tbody.querySelectorAll('tr').length + 1;
@@ -792,9 +797,11 @@ document.addEventListener('DOMContentLoaded', function(){
     const clone = template.cloneNode(true);
     clone.removeAttribute('id');
 
-    // 既定で「貫通」「並目」をONにし、関連入力を無効化
+    // 既定で「貫通」「並目」をONにし、関連入力を無効化（ザグリだけはOFFで開始）
+    const isCounterbore = btn.dataset.target === 'column-counterbore';
     clone.querySelectorAll('.penetration-checkbox input, .coarsethread-checkbox input').forEach(cb=>{
-      cb.checked = true; updateInputState(cb);
+      cb.checked = !isCounterbore;
+      updateInputState(cb);
     });
 
     // 先頭に追加して最新カードが左上に揃う
@@ -821,6 +828,42 @@ document.addEventListener('DOMContentLoaded', function(){
       }
       if(runBtn.dataset.type === 'tap'){
         handleTapProcess(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'endmill-circle'){
+        handleEndmillCircle(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'endmill-side'){
+        handleEndmillSide(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'slot'){
+        handleEndmillSlot(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'boring'){
+        handleBoringProcess(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'reamer'){
+        handleReamerProcess(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'counterbore'){
+        handleCounterboreProcess(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'chamfer-circle'){
+        handleChamferCircle(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'chamfer-side'){
+        handleChamferSide(card, toolName, runBtn);
+        return;
+      }
+      if(runBtn.dataset.type === 'milling'){
+        handleMillingProcess(card, toolName, runBtn);
         return;
       }
 
@@ -878,11 +921,26 @@ document.addEventListener('DOMContentLoaded', function(){
   const removalEndpoint = "{% url 'calculate_removal_time' %}";
   const drillProcessEndpoint = "{% url 'calculate_drill_process' %}";
   const tapProcessEndpoint = "{% url 'calculate_tap_process' %}";
+  const endmillCircleEndpoint = "{% url 'calculate_endmill_circle' %}";
+  const endmillSideEndpoint = "{% url 'calculate_endmill_side' %}";
+  const endmillSlotEndpoint = "{% url 'calculate_endmill_slot' %}";
+  const boringProcessEndpoint = "{% url 'calculate_boring_process' %}";
+  const reamerProcessEndpoint = "{% url 'calculate_reamer_process' %}";
+  const counterboreProcessEndpoint = "{% url 'calculate_counterbore_process' %}";
+  const millingProcessEndpoint = "{% url 'calculate_milling_process' %}";
+  const chamferCircleEndpoint = "{% url 'calculate_chamfer_circle' %}";
+  const chamferSideEndpoint = "{% url 'calculate_chamfer_side' %}";
   const weightDisplay = document.getElementById('weight_display');
   const removalTimeInput = document.getElementById('removal_time');
   const dimensionInputIds = ['plate_thickness','width','length'];
   const machineHolder = document.getElementById('available_machines');
   const judgementBox = document.getElementById('judgement_box');
+
+  // ザグリは初期状態で貫通チェックを外し、入力を有効化
+  document.querySelectorAll('input[name="counterbore_penetration"]').forEach(cb=>{
+    cb.checked = false;
+    updateInputState(cb);
+  });
   const machineDefinitions = [
     {key:'M1-1', label:'M1-1号機'},
     {key:'M1-2', label:'M1-2号機'},
@@ -1113,6 +1171,7 @@ document.addEventListener('DOMContentLoaded', function(){
       assign('setup-long', data.setup_long_time ?? '');
       assign('setup-short', data.setup_short_time ?? '');
 
+      updateResults();
       card.remove();
     }catch(error){
       alert(error.message);
@@ -1213,7 +1272,686 @@ document.addEventListener('DOMContentLoaded', function(){
       assign('non-processing', data.non_processing_time ?? '');
       assign('setup-long', data.setup_long_time ?? '');
       assign('setup-short', data.setup_short_time ?? '');
+      
 
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleBoringProcess(card, toolName, runBtn){
+    const diaInput = card.querySelector('input[name="boring_diameter"]');
+    const weldedInput = card.querySelector('input[name="boring_fusing_hole"]');
+    const depthInput = card.querySelector('input[name="boring_depth"]');
+    const holeInput = card.querySelector('input[name="boring_hole_count"]');
+    const penetrationInput = card.querySelector('input[name="boring_penetration"]');
+    const plateThicknessInput = document.getElementById('plate_thickness');
+
+    const diameter = parseFloat(diaInput?.value ?? '');
+    const weldedHole = parseFloat(weldedInput?.value ?? '') || 0;
+    let depth = parseFloat(depthInput?.value ?? '');
+    const isPenetration = Boolean(penetrationInput?.checked);
+    const plateThickness = parseFloat(plateThicknessInput?.value ?? '');
+    if(isPenetration){
+      depth = plateThickness;
+    }
+    const numHoles = parseInt(holeInput?.value ?? '', 10);
+    if(!Number.isFinite(diameter) || diameter <= 0){
+      alert('ボーリングの径を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(depth) || depth <= 0){
+      alert('ボーリングの深さを入力してください。');
+      return;
+    }
+    if(!Number.isInteger(numHoles) || numHoles <= 0){
+      alert('ボーリングの孔数を入力してください。');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      diameter,
+      welded_hole: weldedHole,
+      depth,
+      num_holes: numHoles,
+      penetration: isPenetration ? '1' : '0',
+    });
+    if(isPenetration){
+      params.set('plate_thickness', plateThickness);
+    }
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${boringProcessEndpoint}?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'ボーリング計算に失敗しました。');
+      }
+      const data = await response.json();
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || 'ボーリング',
+        diameter: diameter ?? '',
+        holeCount: String(numHoles),
+      });
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      // ピッチはボーリングでは表示しない
+      assign('pre-hole', data.pilot_hole_diameter ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('tool-length', data.tool_length ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleReamerProcess(card, toolName, runBtn){
+    const diaInput = card.querySelector('input[name="reamer_diameter"]');
+    const depthInput = card.querySelector('input[name="reamer_depth"]');
+    const holeInput = card.querySelector('input[name="reamer_hole_count"]');
+    const penetrationInput = card.querySelector('input[name="reamer_penetration"]');
+    const plateThicknessInput = document.getElementById('plate_thickness');
+
+    const diameter = parseFloat(diaInput?.value ?? '');
+    let depth = parseFloat(depthInput?.value ?? '');
+    const isPenetration = Boolean(penetrationInput?.checked);
+    const plateThickness = parseFloat(plateThicknessInput?.value ?? '');
+    if(isPenetration){
+      depth = plateThickness;
+    }
+    const numHoles = parseInt(holeInput?.value ?? '', 10);
+
+    if(!Number.isFinite(diameter) || diameter <= 0){
+      alert('リーマの径を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(depth) || depth <= 0){
+      alert('リーマの深さを入力してください。');
+      return;
+    }
+    if(!Number.isInteger(numHoles) || numHoles <= 0){
+      alert('リーマの孔数を入力してください。');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      diameter,
+      depth,
+      num_holes: numHoles,
+      penetration: isPenetration ? '1' : '0',
+    });
+    if(isPenetration){
+      params.set('plate_thickness', plateThickness);
+    }
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${reamerProcessEndpoint}?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'リーマ計算に失敗しました。');
+      }
+      const data = await response.json();
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || 'リーマ',
+        diameter: data.diameter ?? diameter,
+        holeCount: String(numHoles),
+      });
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pre-hole', data.pilot_hole_diameter ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('tool-length', data.tool_length ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleCounterboreProcess(card, toolName, runBtn){
+    const diaInput = card.querySelector('input[name="counterbore_diameter"]');
+    const depthInput = card.querySelector('input[name="counterbore_depth"]');
+    const holeDiaInput = card.querySelector('input[name="counterbore_pore_diameter"]');
+    const holeDepthInput = card.querySelector('input[name="counterbore_hole_depth"]');
+    const holeCountInput = card.querySelector('input[name="counterbore_hole_count"]');
+    const penetrationInput = card.querySelector('input[name="counterbore_penetration"]');
+    const plateThicknessInput = document.getElementById('plate_thickness');
+
+    const counterboreDiameter = parseFloat(diaInput?.value ?? '');
+    const counterboreDepth = parseFloat(depthInput?.value ?? '');
+    const holeDiameter = parseFloat(holeDiaInput?.value ?? '');
+    let holeDepth = parseFloat(holeDepthInput?.value ?? '');
+    const isPenetration = Boolean(penetrationInput?.checked);
+    const plateThickness = parseFloat(plateThicknessInput?.value ?? '');
+    if(isPenetration){
+      holeDepth = plateThickness;
+    }
+    const numHoles = parseInt(holeCountInput?.value ?? '', 10);
+
+    if(!Number.isFinite(counterboreDiameter) || counterboreDiameter <= 0){
+      alert('ザグリ径を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(counterboreDepth) || counterboreDepth <= 0){
+      alert('ザグリ深さを入力してください。');
+      return;
+    }
+    if(!Number.isFinite(holeDiameter) || holeDiameter <= 0){
+      alert('穴径を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(holeDepth) || holeDepth <= 0){
+      alert('穴深さを入力してください。');
+      return;
+    }
+    if(!Number.isInteger(numHoles) || numHoles <= 0){
+      alert('孔数を入力してください。');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      counterbore_diameter: counterboreDiameter,
+      counterbore_depth: counterboreDepth,
+      counterbore_pore_diameter: holeDiameter,
+      counterbore_hole_depth: holeDepth,
+      counterbore_hole_count: numHoles,
+      penetration: isPenetration ? '1' : '0',
+    });
+    if(isPenetration){
+      params.set('plate_thickness', plateThickness);
+    }
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${counterboreProcessEndpoint}?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'ザグリ計算に失敗しました。');
+      }
+      const data = await response.json();
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || 'ザグリ',
+        diameter: data.diameter ?? counterboreDiameter,
+        holeCount: String(numHoles),
+      });
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pitch', '');
+      assign('pre-hole', data.pilot_hole_diameter ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('tool-length', data.tool_length ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleMillingProcess(card, toolName, runBtn){
+    const depthInput = card.querySelector('input[name="milling_depth"]');
+    const roughInput = card.querySelector('input[name="milling_surface_roughness"]');
+    const widthInput = card.querySelector('input[name="milling_removal_width"]');
+    const lengthInput = card.querySelector('input[name="milling_removal_length"]');
+    const surfaceOption = card.querySelector('input[name="milling_cutting_surface_option"]:checked');
+
+    const depth = parseFloat(depthInput?.value ?? '');
+    const surfaceRoughness = parseFloat(roughInput?.value ?? '');
+    const removalWidth = parseFloat(widthInput?.value ?? '');
+    const removalLength = parseFloat(lengthInput?.value ?? '');
+
+    if(!Number.isFinite(depth) || depth <= 0){
+      alert('フライスの加工深さを入力してください。');
+      return;
+    }
+    if(!Number.isFinite(surfaceRoughness)){
+      alert('面粗度を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(removalWidth) || removalWidth <= 0){
+      alert('取代(幅)を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(removalLength) || removalLength <= 0){
+      alert('取代(長さ)を入力してください。');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      milling_depth: depth,
+      milling_surface_roughness: surfaceRoughness,
+      milling_removal_width: removalWidth,
+      milling_removal_length: removalLength,
+      milling_cutting_surface_option: surfaceOption?.value || 'one_side',
+    });
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${millingProcessEndpoint}?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'フライス計算に失敗しました。');
+      }
+      const data = await response.json();
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || 'フライス',
+        diameter: '',
+        holeCount: '',
+      });
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pitch','');
+      assign('pre-hole','');
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('tool-length', data.tool_length ?? '');
+      assign('judge', data.judge ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleEndmillCircle(card, toolName, runBtn){
+    const depthInput = card.querySelector('input[name="endmill_circle_depth"]');
+    const removalInput = card.querySelector('input[name="endmill_circle_removal"]');
+    const edgeInput = card.querySelector('input[name="endmill_circle_cutting_edge"]');
+    const diaInput = card.querySelector('input[name="endmill_circle_machining_diameter"]');
+    const holeInput = card.querySelector('input[name="endmill_circle_hole_count"]');
+    const penetrationInput = card.querySelector('input[name="endmill_circle_penetration"]');
+    const plateThicknessInput = document.getElementById('plate_thickness');
+
+    let depth = parseFloat(depthInput?.value ?? '');
+    const isPenetration = Boolean(penetrationInput?.checked);
+    const plateThickness = parseFloat(plateThicknessInput?.value ?? '');
+    if(isPenetration){
+      depth = plateThickness;
+    }
+    const removal = parseFloat(removalInput?.value ?? '');
+    const edgeRadius = parseFloat(edgeInput?.value ?? '') || 0;
+    const machiningDiameter = parseFloat(diaInput?.value ?? '');
+    const numHoles = parseInt(holeInput?.value ?? '1', 10);
+
+    const params = new URLSearchParams({
+      depth,
+      removal,
+      edge_radius: edgeRadius,
+      machining_diameter: machiningDiameter,
+      num_holes: numHoles,
+      penetration: isPenetration ? '1' : '0',
+    });
+    if(isPenetration){
+      params.set('plate_thickness', plateThickness);
+    }
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${endmillCircleEndpoint}?${params.toString()}`, {
+        headers:{'X-Requested-With':'XMLHttpRequest'}
+      });
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'エンドミル計算に失敗しました。');
+      }
+      const data = await response.json();
+
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+
+      // ★ 加工詳細（tool）は「カードのヘッダ名」をそのまま使う
+      //   → 常に「エンドミル(真円)」になる
+      fillRow(tr, {
+        toolName: toolName || 'エンドミル(真円)',
+        diameter: machiningDiameter ?? '',
+        holeCount: String(numHoles),
+      });
+
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pre-hole', data.pilot_hole_diameter ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      // 「工具」列には DB由来の tool_name（ソリッドエンドミル）を表示
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('tool-length', data.tool_length ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleEndmillSide(card, toolName, runBtn){
+    const depthInput = card.querySelector('input[name="endmill_side_depth"]');
+    const removalInput = card.querySelector('input[name="endmill_side_removal"]');
+    const edgeInput = card.querySelector('input[name="endmill_side_cutting_edge"]');
+    const cutLengthInput = card.querySelector('input[name="endmill_side_cutting_length"]');
+    const minInnerInput = card.querySelector('input[name="endmill_side_minimum_inner_radius"]');
+    const penetrationInput = card.querySelector('input[name="endmill_side_penetration"]');
+    const plateThicknessInput = document.getElementById('plate_thickness');
+
+    let depth = parseFloat(depthInput?.value ?? '');
+    const isPenetration = Boolean(penetrationInput?.checked);
+    const plateThickness = parseFloat(plateThicknessInput?.value ?? '');
+    if(isPenetration){
+      depth = plateThickness;
+    }
+    const removal = parseFloat(removalInput?.value ?? '');
+    const edgeRadius = parseFloat(edgeInput?.value ?? '') || 0;
+    const cuttingLength = parseFloat(cutLengthInput?.value ?? '');
+    const minInnerRadius = parseFloat(minInnerInput?.value ?? '');
+
+    const params = new URLSearchParams({
+      depth,
+      removal,
+      edge_radius: edgeRadius,
+      cutting_length: cuttingLength,
+      min_inner_radius: minInnerRadius,
+      penetration: isPenetration ? '1' : '0',
+    });
+    if(isPenetration){
+      params.set('plate_thickness', plateThickness);
+    }
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${endmillSideEndpoint}?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'エンドミル計算に失敗しました。');
+      }
+      const data = await response.json();
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || 'エンドミル(側面)',
+        diameter: data.diameter ?? '',
+        holeCount: '',
+      });
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pre-hole', data.cutting_length ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('tool-length', data.tool_length ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleEndmillSlot(card, toolName, runBtn){
+    const widthInput = card.querySelector('input[name="slot_width"]');
+    const lengthInput = card.querySelector('input[name="slot_length"]');
+    const depthInput = card.querySelector('input[name="slot_depth"]');
+    const edgeInput = card.querySelector('input[name="slot_cutting_edge"]');
+    const holeInput = card.querySelector('input[name="slot_hole_count"]');
+    const penetrationInput = card.querySelector('input[name="slot_penetration"]');
+    const plateThicknessInput = document.getElementById('plate_thickness');
+
+    let depth = parseFloat(depthInput?.value ?? '');
+    const isPenetration = Boolean(penetrationInput?.checked);
+    const plateThickness = parseFloat(plateThicknessInput?.value ?? '');
+    if(isPenetration){
+        depth = plateThickness;
+    }
+    const width = parseFloat(widthInput?.value ?? '');
+    const length = parseFloat(lengthInput?.value ?? '');
+    const edgeRadius = parseFloat(edgeInput?.value ?? '') || 0;
+    const numHoles = parseInt(holeInput?.value ?? '1', 10);
+
+    const params = new URLSearchParams({
+      width,
+      length,
+      depth,
+      edge_radius: edgeRadius,
+      num_holes: numHoles,
+      penetration: isPenetration ? '1' : '0',
+    });
+    if(isPenetration){
+      params.set('plate_thickness', plateThickness);
+    }
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${endmillSlotEndpoint}?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || 'エンドミル計算に失敗しました。');
+      }
+      const data = await response.json();
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || '長孔',
+        diameter: data.diameter ??'',
+        holeCount: '1',
+      });
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col=\"${key}\"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pre-hole', data.cutting_length ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('tool-length', data.tool_length ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleChamferCircle(card, toolName, runBtn){
+    const angleInput = card.querySelector('input[name="chamfer_circle_angle"]');
+    const widthInput = card.querySelector('input[name="chamfer_circle_processing_width"]');
+    const diaInput = card.querySelector('input[name="chamfer_circle_machining_diameter"]');
+    const holeInput = card.querySelector('input[name="chamfer_circle_hole_count"]');
+
+    const angle = parseFloat(angleInput?.value ?? '');
+    const width = parseFloat(widthInput?.value ?? '');
+    const diameter = parseFloat(diaInput?.value ?? '');
+    const numHoles = parseInt(holeInput?.value ?? '', 10);
+
+    if(!Number.isFinite(angle)){
+      alert('面取り角度を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(width) || width < 0){
+      alert('加工幅を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(diameter) || diameter < 0){
+      alert('加工径を入力してください。');
+      return;
+    }
+    if(!Number.isInteger(numHoles) || numHoles < 0){
+      alert('孔数を入力してください。');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      chamfer_circle_angle: angle,
+      chamfer_circle_processing_width: width,
+      chamfer_circle_machining_diameter: diameter,
+      chamfer_circle_hole_count: numHoles,
+    });
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${chamferCircleEndpoint}?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || '面取り計算に失敗しました。');
+      }
+      const data = await response.json();
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || '面取り(真円)',
+        diameter: `${diameter}`,
+        holeCount: String(numHoles),
+      });
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pitch','');
+      assign('pre-hole','');
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('tool-length', data.tool_length ?? '');
+      assign('judge', data.judge ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+      updateResults();
+      card.remove();
+    }catch(error){
+      alert(error.message);
+    }finally{
+      runBtn.disabled = false;
+    }
+  }
+
+  async function handleChamferSide(card, toolName, runBtn){
+    const angleInput = card.querySelector('input[name="chamfer_side_angle"]');
+    const widthInput = card.querySelector('input[name="chamfer_side_processing_width"]');
+    const lengthInput = card.querySelector('input[name="chamfer_side_cutting_length"]');
+    const minInnerInput = card.querySelector('input[name="chamfer_side_minimum_inner_radius"]');
+
+    const angle = parseFloat(angleInput?.value ?? '');
+    const width = parseFloat(widthInput?.value ?? '');
+    const cuttingLength = parseFloat(lengthInput?.value ?? '');
+    const minInnerRadius = parseFloat(minInnerInput?.value ?? '');
+
+    if(!Number.isFinite(angle)){
+      alert('面取り角度を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(width) || width < 0){
+      alert('加工幅を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(cuttingLength) || cuttingLength <= 0){
+      alert('切削長を入力してください。');
+      return;
+    }
+    if(!Number.isFinite(minInnerRadius) || minInnerRadius < 0){
+      alert('最小内Rを入力してください。');
+      return;
+    }
+
+    const params = new URLSearchParams({
+      chamfer_side_angle: angle,
+      chamfer_side_processing_width: width,
+      chamfer_side_cutting_length: cuttingLength,
+      chamfer_side_minimum_inner_radius: minInnerRadius,
+    });
+
+    runBtn.disabled = true;
+    try{
+      const response = await fetch(`${chamferSideEndpoint}?${params.toString()}`, {headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if(!response.ok){
+        const err = await response.json().catch(()=>null);
+        throw new Error(err?.error || '面取り計算に失敗しました。');
+      }
+      const data = await response.json();
+      const tbody = procedureTable.querySelector('tbody');
+      const tr = createProcedureRow(tbody);
+      fillRow(tr, {
+        toolName: toolName || '面取り(側面)',
+        diameter: '',
+        holeCount: '',
+      });
+      const assign = (key, value)=>{
+        const cell = tr.querySelector(`[data-col="${key}"]`);
+        if(cell) cell.textContent = value ?? '';
+      };
+      assign('pitch','');
+      assign('pre-hole','');
+      assign('selected-tool', data.tool_name ?? toolName ?? '');
+      assign('time-minutes', formatNumber(data.processing_time_minutes ?? '', 2));
+      assign('time-seconds', formatNumber(data.processing_time_seconds ?? '', 2));
+      assign('tool-length', data.tool_length ?? '');
+      assign('judge', data.judge ?? '');
+      assign('non-processing', data.non_processing_time ?? '');
+      assign('setup-long', data.setup_long_time ?? '');
+      assign('setup-short', data.setup_short_time ?? '');
+      updateResults();
       card.remove();
     }catch(error){
       alert(error.message);
@@ -1223,9 +1961,65 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   function updateResults(){
-    document.getElementById('total_processing_time').value = (Math.random()*10+5).toFixed(2);
-    document.getElementById('setup_time_count').value = '1';
-    document.getElementById('setup_time_long').value = '10';
+    const tbody = procedureTable.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if(!rows.length){
+      ['total_processing_time','setup_time_count','setup_time_long'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+      return;
+    }
+    const hasNg = rows.some(tr=>{
+      const j = tr.querySelector('[data-col="judge"]');
+      return j && (j.textContent || '').includes('加工不可');
+    });
+    if(hasNg){
+      ['total_processing_time','setup_time_count','setup_time_long'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+      return;
+    }
+    let procSecSum = 0;
+    let nonProcSum = 0;
+    let setupLongSum = 0;
+    let setupShortSum = 0;
+    let maxToolLen = 0;
+    const numOrZero = v=>{
+      const n = parseFloat(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    rows.forEach(tr=>{
+      const get = col=>tr.querySelector(`[data-col="${col}"]`)?.textContent?.trim() ?? '';
+      const sec = parseFloat(get('time-seconds'));
+      if(Number.isFinite(sec)){
+        procSecSum += sec;
+      }else{
+        const min = parseFloat(get('time-minutes'));
+        if(Number.isFinite(min)) procSecSum += min*60;
+      }
+      nonProcSum += numOrZero(get('non-processing'));
+      setupLongSum += numOrZero(get('setup-long'));
+      setupShortSum += numOrZero(get('setup-short'));
+      const tl = parseFloat(get('tool-length'));
+      if(Number.isFinite(tl)) maxToolLen = Math.max(maxToolLen, tl);
+    });
+    const totalSec = procSecSum + nonProcSum;
+    const totalMin = totalSec / 60;
+
+    const origin = 80;
+    const carry = 330;
+    const parallel = document.getElementById('vise_parallel')?.checked || false;
+    const jigLong = parallel ? 480 : 290;
+    const jigShort = parallel ? 0 : 290;
+    const setupLongMin = (origin + carry + jigLong + setupLongSum) / 60;
+    const setupShortMin = (origin + carry + jigShort + setupShortSum) / 60;
+
+    const maxToolFinal = Math.max(maxToolLen || 0, 230);
+
+    const setVal = (id, val)=>{ const el=document.getElementById(id); if(el) el.value = Number.isFinite(val)? val.toFixed(2):''; };
+    setVal('total_processing_time', totalMin);
+    setVal('setup_time_count', setupShortMin);
+    setVal('setup_time_long', setupLongMin);
+
+    // 最大工具長も表示先があれば更新（自由入力フィールドがある場合用）
+    const maxToolEl = document.getElementById('max_tool_length_total');
+    if(maxToolEl) maxToolEl.value = maxToolFinal.toFixed(1);
   }
   inputs.forEach(el=>el && el.addEventListener('input', updateResults));
 
